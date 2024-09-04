@@ -8,11 +8,15 @@ Os logs são categorizados em grupos como "Application", "System" e "Security", 
 
 Dentro do Visualizador de Eventos, observei os cinco logs padrão do Windows: "Application", "Security", "Setup", "System" e "Forwarded Events". Cada um tem uma função específica — como monitorar erros de aplicações, eventos de segurança e informações do sistema. A seção "Forwarded Events" é única, exibindo dados de logs encaminhados de outras máquinas, o que é útil para administradores que buscam uma visão centralizada.
 
+![image](https://github.com/user-attachments/assets/46f48afa-56ec-4e6b-bb6b-51539e1f1375)
+
 ## Componentes de um Log de Evento
 
 Cada entrada em um Log de Eventos do Windows possui componentes essenciais, como o "Log Name" (nome do log), "Source" (origem do evento), "Event ID" (identificador único do evento), "Level" (severidade do evento), "Keywords" (categorias amplas para classificação), "User" (usuário conectado quando o evento ocorreu), e dados em formato XML, que oferecem uma descrição estruturada e detalhada do evento.
 
 Foquei na análise de eventos de segurança, como o Event ID 4624, que indica um logon bem-sucedido. Esse log contém detalhes importantes como "Logon ID", permitindo correlacionar este logon com outros eventos que compartilham o mesmo ID, e o "Logon Type", que indica o tipo de logon (por exemplo, um logon de serviço iniciado pelo sistema).
+
+![image](https://github.com/user-attachments/assets/0d8b93e9-ffc0-4b66-be9a-125c75339221)
 
 ## Criando Consultas Personalizadas com XML
 
@@ -54,6 +58,8 @@ Além disso, observei o "Event ID 13" (modificação de chaves do Registro), ess
 
 Através da correlação de eventos diferentes, pude construir histórias detalhadas de possíveis ataques. Por exemplo, ao correlacionar um "Event ID 1" (criação de processo) com um "Event ID 7" (carregamento de imagem), foi possível identificar quando um executável malicioso iniciou e quais bibliotecas ele carregou, ajudando a compreender melhor seu comportamento.
 
+![image](https://github.com/user-attachments/assets/c8bc5b66-4c10-4707-89fb-1e8c8be55a01)
+
 Para tornar esta análise ainda mais eficaz, utilizei queries personalizadas em XML no Visualizador de Eventos. Por meio dessas queries, refinei a busca de eventos específicos, filtrando eventos como "Event ID 10" para identificar injeções de thread remotas, que frequentemente indicam técnicas de pós-exploração usadas por atacantes para mover lateralmente dentro de uma rede.
 
 ## Aplicação de Técnicas de Caça às Ameaças
@@ -68,13 +74,15 @@ Este laboratório reforçou a importância de ferramentas como o Sysmon para a d
 
 Durante o meu trabalho com ferramentas de monitoramento e análise de segurança, descobri que o Event Tracing for Windows (ETW) é um recurso frequentemente subestimado, mas extremamente poderoso. A habilidade de extrair e analisar informações detalhadas sobre o funcionamento interno do Windows pode fazer uma grande diferença na detecção e resposta a incidentes de segurança.
 
-O Que é o ETW?
+# O Que é o ETW?
 
 ETW é uma ferramenta de rastreamento de alto desempenho integrada ao Windows, projetada para capturar e analisar uma vasta gama de eventos que ocorrem no sistema. Ele utiliza um mecanismo de buffer e log no núcleo do sistema operacional, permitindo a coleta de dados em tempo real de aplicativos e drivers, tanto no modo de usuário quanto no modo de núcleo.
 
 Ao explorar o ETW, fiquei impressionado com a profundidade das informações que ele pode fornecer. Em vez de depender apenas dos logs tradicionais, que têm um escopo mais limitado, o ETW oferece um panorama detalhado das atividades do sistema, incluindo chamadas de sistema, criação e término de processos, atividades de rede, e modificações em arquivos e registros.
 
-Arquitetura e Componentes do ETW
+## Arquitetura e Componentes do ETW
+
+![image](https://github.com/user-attachments/assets/ce355f2b-b297-4d0f-b8b0-f14dc72dd371)
 
 A arquitetura do ETW é baseada em um modelo de publicação e assinatura, e envolve os seguintes componentes principais:
 
@@ -86,13 +94,60 @@ Consumidores: Assinam eventos de interesse e processam ou analisam esses eventos
 
 Canais: Contêineres lógicos que organizam e filtram eventos, permitindo que os consumidores se concentrem apenas nos eventos relevantes para suas necessidades.
 
-Utilizando o ETW para Monitoramento de Segurança
+## Utilizando o ETW para Monitoramento de Segurança
 
 Na prática, utilizar o ETW para monitoramento de segurança revelou-se extremamente útil. Ferramentas como logman permitem criar e gerenciar sessões de rastreamento, o que me permitiu configurar a captura de eventos de interesse específicos, como atividades de rede ou execução de processos. Provedores como Microsoft-Windows-Kernel-Process e Microsoft-Windows-Kernel-Network foram especialmente valiosos para detectar comportamentos suspeitos e atividades de rede não autorizadas.
 
 Além disso, descobri que há provedores restritos, como o Microsoft-Windows-Threat-Intelligence, que fornecem dados altamente granulares sobre ameaças de segurança, mas que só podem ser acessados por processos com permissões especiais. Essa restrição ajuda a proteger informações sensíveis, mas também destaca a importância de ter as permissões adequadas para acessar esses dados cruciais.
 
-Conclusão
+## Conclusão
 
 Explorar o ETW me mostrou o quão poderoso e abrangente ele pode ser para a detecção e resposta a incidentes de segurança. Ao integrar o ETW em nossas estratégias de monitoramento, podemos obter uma visão mais detalhada e contextualizada das atividades do sistema, melhorando significativamente nossa capacidade de identificar e responder a ameaças.
 
+# Skill Assessment of Windows Event Log & Finding Evil
+
+## Tarefa 1: Identificando o Processo de DLL Hijacking
+
+Ao examinar os logs no diretório "C:\Logs\DLLHijack", precisei determinar qual processo foi responsável por executar um ataque de DLL hijacking.
+
+Passo a Passo:
+
+Modifiquei o arquivo de configuração do Sysmon para incluir Imageload Onmatch = exclusive.
+Atualizei a configuração com o comando sysmon.exe -c ....
+No Visualizador de Eventos, abri os logs salvos e naveguei até a pasta correspondente. A análise focou no Event ID 7, que está relacionado ao carregamento de imagens, incluindo detalhes como o caminho da imagem, o hash e os metadados. Utilizando a opção de busca, consegui identificar o processo responsável.
+
+## Tarefa 2: Identificando o Processo que Executou Código PowerShell Não Gerenciado
+Em seguida, precisava encontrar o processo que executou código PowerShell não gerenciado, analisando os logs no diretório "C:\Logs\PowershellExec".
+
+Passo a Passo:
+
+Com o Visualizador de Eventos aberto, carreguei os logs salvos do diretório especificado.
+Como essa tarefa também envolvia imagens carregadas, filtrei os eventos para o Event ID 7. Usando a dica relacionada ao .Net, consegui identificar o processo que executou o código PowerShell.
+
+## Tarefa 3: Identificando o Processo que Injetou Código PowerShell
+
+A terceira tarefa estava interligada à anterior. Eu precisava identificar o processo que injetou no processo que executou o código PowerShell não gerenciado.
+
+Passo a Passo:
+
+Utilizei o Event ID relacionado ao Source Process ID e ao nome (CreateRemoteThread).
+Analisei o evento correto que lidava com o ID do processo pai para encontrar o processo responsável pela injeção de código.
+
+## Tarefa 4: Identificando o Processo que Realizou um Dump do LSASS
+A quarta tarefa exigia a identificação do processo que executou um dump de LSASS, analisando os logs em "C:\Logs\Dump".
+
+Passo a Passo:
+
+Esta tarefa era um verdadeiro teste de paciência, especialmente se estivesse tentando resolvê-la em 60 minutos devido a possíveis problemas de rede ou RDP.
+Reconfigurei o arquivo de configuração do Sysmon, desta vez alterando o ProccessAcess onmatch para Exclude.
+Abri os logs salvos e utilizei a dica "lsass.exe" para filtrar pelo Event ID 10. Embora esse método pudesse ser demorado, também considerei usar a ferramenta Chainsaw em linha de comando, mas optei pelo Visualizador de Eventos.
+
+## Tarefa 5: Identificando um Processo com Relação Estranha de Pai-Filho
+
+A última tarefa envolvia encontrar um processo que foi usado para executar temporariamente código com uma relação incomum de processo pai-filho, analisando os logs em "C:\Logs\StrangePPID".
+
+Passo a Passo:
+
+Carreguei o arquivo .evtx da pasta especificada.
+Embora a ferramenta Chainsaw fosse uma alternativa, achei que usar o Visualizador de Eventos foi mais fácil para esta tarefa, apesar de ter demorado algumas horas.
+Analisei o evento relacionado à criação de threads (CreateThread Detected) para identificar o processo relevante.
