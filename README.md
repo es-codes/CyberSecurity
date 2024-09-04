@@ -11,3 +11,8 @@
 # [Incident Handling](https://github.com/es-codes/CyberSecurity/blob/main/incident_handling_process/README.md)
 
 ![image](https://github.com/user-attachments/assets/9d21e2aa-d5d3-41f4-a92f-c679a3605c29)
+
+# [SIEM Monitoring and Fundamentals](https://github.com/es-codes/CyberSecurity/tree/main/Security_Monitoring_%26_SIEM_Fundamentals)
+
+![image](https://github.com/user-attachments/assets/ef973876-4e22-4f56-9c44-f6935e00f48b)
+
