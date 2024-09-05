@@ -20,4 +20,9 @@
 
 ![image](https://github.com/user-attachments/assets/1b19c408-b9bd-484b-81a1-b27e1cb7af70)
 
+# [Introduction to Threat Hunting & Hunting With Elastic](https://github.com/es-codes/CyberSecurity/blob/main/threat_hunting_fundamentals/README.md)
+
+![image](https://github.com/user-attachments/assets/c74de5a9-8906-477d-9daa-9d255c7fe69b)
+
+
 
