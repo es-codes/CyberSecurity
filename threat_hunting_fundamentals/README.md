@@ -123,38 +123,53 @@ Inteligência Tática: Fornece informações imediatas e acionáveis para defens
 
 É essencial entender que há um grau de sobreposição entre essas três tipos de inteligência, o que justifica a representação em um diagrama de Venn. A inteligência tática contribui para formar uma visão operacional e estratégica, e vice-versa.
 
-## Avaliação de Habilidades: Caça ao Stuxbot
+# Caça ao Stuxbot
 
-Neste laboratório, explorei as táticas evolutivas do malware Stuxbot, especialmente sua versão mais recente. O foco foi entender como o Stuxbot utiliza diferentes técnicas para manter a persistência e se mover lateralmente dentro de uma rede. Aqui está um resumo dos principais aprendizados:
+Durante o laboratório de análise da ameaça Stuxbot, utilizei o Elastic Stack para investigar um possível comprometimento dentro da nossa organização, com base em um relatório de Inteligência de Ameaças. O Stuxbot é uma ameaça crítica que usa campanhas de phishing para obter acesso inicial, e seu foco está na espionagem. O laboratório concentrou-se em investigar se os Indicadores de Comprometimento (IOCs) associados ao Stuxbot estavam presentes em nossa infraestrutura.
 
-## Principais Descobertas
+## Cenário Inicial
 
-Implantação via C:\Users\Public: As versões mais recentes do Stuxbot utilizam o diretório C:\Users\Public para implantar ferramentas adicionais. Essa tática ajuda na disseminação do malware por diferentes partes do sistema.
+A ameaça Stuxbot se caracteriza por campanhas de phishing que distribuem arquivos OneNote maliciosos. Esses arquivos disfarçam-se como faturas e são hospedados em serviços de compartilhamento de arquivos como Mega.io. O arquivo OneNote, ao ser aberto, executa um script de batch que baixa scripts PowerShell, iniciando o payload malicioso.
 
-Chaves de Registro para Persistência: O Stuxbot usa chaves de registro para garantir que persista mesmo após reinicializações do sistema. Esse método de persistência é uma técnica comum utilizada por malwares para manter sua presença.
+![image](https://github.com/user-attachments/assets/aba1db9d-284b-44ce-b4eb-7332f34b8a12)
 
-PowerShell Remoting para Movimento Lateral: Para movimento lateral, o Stuxbot utiliza PowerShell Remoting. Isso permite que o malware navegue pela rede e acesse componentes críticos, como controladores de domínio.
+## Investigação com Elastic Stack
 
-## Dados Disponíveis
+### Configuração do Ambiente
 
-O laboratório utilizou a pilha Elastic como nossa solução SIEM. Através do recurso “Discover”, acessei logs de várias fontes, incluindo:
+A configuração inicial envolveu o acesso ao Kibana para verificar logs de diferentes fontes, incluindo logs de auditoria do Windows, logs do Sysmon e logs do PowerShell. Configuramos a busca para logs a partir de março de 2023, conforme o período relevante mencionado no relatório de inteligência.
 
-.Logs de Auditoria do Windows: Encontrados sob o padrão de índice windows*.
+## Busca por Indicadores de Comprometimento
 
-.Logs do System Monitor (Sysmon): Também categorizados sob windows*.
+Hunt 1 e 2: Iniciei a busca pelos arquivos "invoice.one" baixados, procurando por eventos de criação de arquivos no Sysmon (Event ID 15 e 11). Identifiquei que o arquivo "invoice.one" foi baixado no dia 26 de março de 2023 às 22:05:47, e o download foi feito através do Microsoft Edge, armazenado na pasta Downloads do usuário Bob.
 
-.Logs do PowerShell: Indexados sob windows*.
+![image](https://github.com/user-attachments/assets/ac209291-8bc1-4e72-9ee6-4f2d090b8c39)
 
-.Logs do Zeek: Classificados sob o padrão de índice zeek*.
+Hunt 3 e 4: Utilizei logs do Zeek para verificar as consultas DNS realizadas pelo IP de origem 192.168.28.130, filtrando consultas relevantes e identificando acesso ao "file.io", um conhecido provedor de hospedagem.
 
-## Tarefas e Consultas
+![image](https://github.com/user-attachments/assets/f0322ca6-de84-47b5-9dc0-396c008ae6e4)
 
-Transferência Lateral de Ferramentas: Criei uma consulta KQL para buscar transferências de ferramentas para C:\Users\Public. O documento relevante destacou um campo user.name associado à ferramenta transferida que começa com "r".
+## Análise de Atividades Posteriores
 
-Chaves de Registro de Inicialização: Desenvolvi uma consulta KQL para identificar execuções de inicialização ou logon através de chaves de registro. Os resultados da consulta forneceram o conteúdo do campo registry.value relacionado à primeira ação de persistência baseada em registro.
+Hunt 7 e 8: Verifiquei se o arquivo OneNote foi acessado após o download. Encontrei que o OneNote.exe foi utilizado para abrir o arquivo e que o arquivo "invoice.bat" foi executado via "cmd.exe". O arquivo batch baixou e executou um script PowerShell a partir do Pastebin.
 
-PowerShell Remoting: Outra consulta KQL foi criada para detectar o uso de PowerShell Remoting para movimento lateral. Essa consulta ajudou a identificar o campo winlog.user.name associado às ações de remoting em direção ao DC1.
+![image](https://github.com/user-attachments/assets/877ba30c-466f-4480-983a-33122e5654f6)
+
+Hunt 12 e 13: Analisei as atividades do PowerShell. Os logs indicaram que o PowerShell executou comandos para baixar conteúdo malicioso e realizar conexões de rede. As conexões foram realizadas com IPs de C2, com tráfego criptografado, e o uso de Ngrok para ocultar o tráfego.
+
+![image](https://github.com/user-attachments/assets/b06f01d9-3da5-42f9-8516-485f3674efe6)
+
+## Verificação de Persistência e Movimento Lateral
+
+Hunt 17 e 18: Identifiquei a execução do arquivo "default.exe", que se conectou aos IPs de C2 e fez uploads de arquivos como "SharpHound.exe" e "svchost.exe". O SharpHound é uma ferramenta conhecida para mapear Active Directory e identificar caminhos de ataque. A análise revelou que o SharpHound foi executado duas vezes.
+Conclusão e Identificação de Comprometimentos
+
+![image](https://github.com/user-attachments/assets/6310340e-25b9-4ce8-8ded-b7c64122ed14)
+
+Hunt 29: A pesquisa revelou que arquivos com um hash específico (encontrado no relatório de inteligência) estavam presentes nos dispositivos WS001 e PKI. Isso indicou que a brecha atingiu também o servidor PKI, e a conta "svc-sql1" estava comprometida.
+
+![image](https://github.com/user-attachments/assets/3b193359-917d-43e9-9755-6f3bbf6e457d)
 
 ## Conclusão
 
-Este laboratório ofereceu insights práticos sobre como detectar e analisar táticas avançadas de malware. Ao aplicar consultas KQL na pilha Elastic, aperfeiçoei minhas habilidades em identificar indicadores-chave das atividades do Stuxbot, como movimento lateral e técnicas de persistência. Essas habilidades são cruciais para monitorar e defender efetivamente contra ameaças cibernéticas sofisticadas.
+A investigação revelou que o Stuxbot comprometeu nossos sistemas através de phishing, com o uso de um arquivo OneNote malicioso. A análise dos logs do Elastic Stack mostrou a sequência de eventos desde o download até a execução do payload, incluindo a movimentação lateral e a persistência. Essa investigação demonstrou a eficácia do Elastic Stack para identificar e analisar ameaças complexas, reforçando a necessidade de vigilância contínua e a atualização de nossas práticas de segurança.
